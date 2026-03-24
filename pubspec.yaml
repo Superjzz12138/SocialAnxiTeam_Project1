@@ -30,6 +30,15 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  sqflite: ^2.3.3+1          # SQLite
+  path_provider: ^2.1.5      # 文件路径
+  path: ^1.9.0               # 路径工具
+  provider: ^6.1.2           # 状态管理（简单好用）
+  shared_preferences: ^2.3.2 # 设置存储
+  intl: ^0.20.0              # 日期格式
+  fl_chart: any              # 图表（Bonus）
+  flutter_localizations:     # 支持国际化（可选）
+    sdk: flutter
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
