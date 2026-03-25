@@ -6,6 +6,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'services/biometric_service.dart';
+
+bool _isAuthenticated = false;
 
 void main() {
   runApp(
@@ -530,9 +533,50 @@ class _ProgressTabState extends State<ProgressTab> {
   }
 }
 
-
-class SettingsTab extends StatelessWidget {
+// Settings Tab
+class SettingsTab extends StatefulWidget {
   const SettingsTab({super.key});
+
+  @override
+  State<SettingsTab> createState() => _SettingsTabState();
+}
+
+class _SettingsTabState extends State<SettingsTab> {
+  bool _biometricEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBiometricSetting();
+  }
+
+  Future<void> _loadBiometricSetting() async {
+    setState(() {
+      _biometricEnabled = false;
+    });
+  }
+
+  Future<void> _toggleBiometric(bool value) async {
+    final available = await BiometricService.isBiometricAvailable();
+    if (!available && value) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Biometric not available on this device')),
+        );
+      }
+      return;
+    }
+
+    setState(() {
+      _biometricEnabled = value;
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(value ? 'Biometric Login Enabled' : 'Biometric Login Disabled')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -543,13 +587,9 @@ class SettingsTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Settings',
-            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-          ),
+          const Text('Settings', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
           const SizedBox(height: 40),
 
-          // Dark Mode
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -562,6 +602,18 @@ class SettingsTab extends StatelessWidget {
           ),
 
           const Divider(height: 50),
+
+          ListTile(
+            leading: const Icon(Icons.fingerprint, color: Colors.green, size: 32),
+            title: const Text('Enable Biometric Login', style: TextStyle(fontSize: 18)),
+            subtitle: const Text('Use fingerprint or Face ID'),
+            trailing: Switch(
+              value: _biometricEnabled,
+              onChanged: _toggleBiometric,
+            ),
+          ),
+
+          const Divider(height: 30),
 
           // Data Export
           ListTile(
@@ -586,7 +638,6 @@ class SettingsTab extends StatelessWidget {
             },
           ),
 
-          // Biometric Login（简化版，后面再做）
           const ListTile(
             leading: Icon(Icons.fingerprint, color: Colors.grey, size: 30),
             title: Text('Enable Biometric Login', style: TextStyle(fontSize: 18)),
