@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:socialanxiteam_project1/models/workout_plan.dart';
 import 'database/database_helper.dart';
 
 void main() {
@@ -266,14 +267,136 @@ Widget build(BuildContext context) {
 }
 
 
-class WorkoutsTab extends StatelessWidget {
+
+
+class WorkoutsTab extends StatefulWidget {
   const WorkoutsTab({super.key});
+
   @override
-  Widget build(BuildContext context) => const Center(
-        child: Text('Workouts\nCreate & Manage Plans', 
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center),
-      );
+  State<WorkoutsTab> createState() => _WorkoutsTabState();
+}
+
+class _WorkoutsTabState extends State<WorkoutsTab> {
+  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+  List<WorkoutPlan> _workouts = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWorkouts();
+  }
+
+  Future<void> _loadWorkouts() async {
+    final workouts = await _dbHelper.getAllWorkouts();
+    setState(() {
+      _workouts = workouts;
+      _isLoading = false;
+    });
+  }
+
+
+  Future<void> _addWorkout() async {
+    final nameController = TextEditingController();
+    final exercisesController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: const Text('Add New Workout Plan'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: 'Plan Name *'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: exercisesController,
+              decoration: const InputDecoration(labelText: 'Exercises (e.g. Push-ups, Squats)'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (nameController.text.trim().isEmpty) return;
+
+              final newPlan = WorkoutPlan(
+                name: nameController.text.trim(),
+                exercises: exercisesController.text.trim().isEmpty 
+                    ? 'General Workout' 
+                    : exercisesController.text.trim(),
+                sets: 3,
+                reps: 10,
+                restTime: 60,
+                createdAt: DateTime.now(),
+              );
+
+              await _dbHelper.insertWorkout(newPlan);
+              Navigator.pop(dialogContext);
+              _loadWorkouts();
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Workout Plan Added!')),
+                );
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Scaffold(
+      body: _workouts.isEmpty
+          ? const Center(
+              child: Text(
+                'No workout plans yet.\nTap + to add one.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 18),
+              ),
+            )
+          : ListView.builder(
+              itemCount: _workouts.length,
+              itemBuilder: (context, index) {
+                final plan = _workouts[index];
+                return ListTile(
+                  title: Text(plan.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text('${plan.exercises} • ${plan.sets} sets × ${plan.reps} reps'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () async {
+                      await _dbHelper.deleteWorkout(plan.id!);
+                      _loadWorkouts();
+                    },
+                  ),
+                  onLongPress: () async {
+                    await _dbHelper.deleteWorkout(plan.id!);
+                    _loadWorkouts();
+                  },
+                );
+              },
+            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addWorkout,
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
 }
 
 class ProgressTab extends StatelessWidget {
