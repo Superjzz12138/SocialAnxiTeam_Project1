@@ -547,24 +547,36 @@ class _SettingsTabState extends State<SettingsTab> {
   @override
   void initState() {
     super.initState();
-    _loadBiometricSetting();
+    _loadBiometricStatus();
   }
 
-  Future<void> _loadBiometricSetting() async {
+  Future<void> _loadBiometricStatus() async {
     setState(() {
       _biometricEnabled = false;
     });
   }
 
   Future<void> _toggleBiometric(bool value) async {
-    final available = await BiometricService.isBiometricAvailable();
-    if (!available && value) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Biometric not available on this device')),
-        );
+    if (value) {
+      final available = await BiometricService.isBiometricAvailable();
+      if (!available) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Biometric is not available on this device')),
+          );
+        }
+        return;
       }
-      return;
+
+      final success = await BiometricService.authenticate();
+      if (!success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Biometric authentication failed')),
+          );
+        }
+        return;
+      }
     }
 
     setState(() {
@@ -573,7 +585,11 @@ class _SettingsTabState extends State<SettingsTab> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(value ? 'Biometric Login Enabled' : 'Biometric Login Disabled')),
+        SnackBar(
+          content: Text(value 
+              ? '✅ Biometric Login Enabled' 
+              : 'Biometric Login Disabled'),
+        ),
       );
     }
   }
@@ -587,9 +603,13 @@ class _SettingsTabState extends State<SettingsTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Settings', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+          const Text(
+            'Settings',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 40),
 
+          // Dark Mode
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -603,17 +623,18 @@ class _SettingsTabState extends State<SettingsTab> {
 
           const Divider(height: 50),
 
+          // Biometric Login
           ListTile(
             leading: const Icon(Icons.fingerprint, color: Colors.green, size: 32),
             title: const Text('Enable Biometric Login', style: TextStyle(fontSize: 18)),
-            subtitle: const Text('Use fingerprint or Face ID'),
+            subtitle: const Text('Use Face ID or Fingerprint to unlock app'),
             trailing: Switch(
               value: _biometricEnabled,
               onChanged: _toggleBiometric,
             ),
           ),
 
-          const Divider(height: 30),
+          const Divider(height: 40),
 
           // Data Export
           ListTile(
@@ -638,12 +659,6 @@ class _SettingsTabState extends State<SettingsTab> {
             },
           ),
 
-          const ListTile(
-            leading: Icon(Icons.fingerprint, color: Colors.grey, size: 30),
-            title: Text('Enable Biometric Login', style: TextStyle(fontSize: 18)),
-            subtitle: Text('Coming soon'),
-            trailing: Icon(Icons.arrow_forward_ios),
-          ),
         ],
       ),
     );
