@@ -1,15 +1,14 @@
 # socialanxiteam_project1
 # Fitness Tracker
 
-A new Flutter App to track workouts, built workout plans, view progress visually, and generate data reports.
+A Flutter mobile app used to track workouts, built workout plans, view progress visually, and generate data reports.
 
-## Features
-- Bottom Tab Navigation: Home, Workouts, Progress, Settigns.
-- Light/Dark Theme Switching.
-- SQLite database for workout plans and progression datas.
-- Daily check-in and streak tracking.
-- Basic progress visuallization.
-- Biometric Login
+
+## Implemented Features
+- **Home Tab**: Daily check-in system with streak counter and check-in history
+- **Workouts Tab**: Provided add, delete for customer workout plans
+- **Progress Tab**: Visuallized weekly workout status with bar chart using fl_chart
+- **Settings Tab**: Dark/Light theme toggle, Data Export and Biometric Login toggle
 
 ## Setup
 1. Clone repo: `git clone https://github.com/Superjzz12138/SocialAnxiTeam_Project1.git`
@@ -17,4 +16,6 @@ A new Flutter App to track workouts, built workout plans, view progress visually
 3. `flutter pub get`
 4. `flutter run`
 
-developer: Justin Wu
+## Team Members
+- **Developer**: Justin Wu
+- **Role**: All
