@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:socialanxiteam_project1/models/workout_plan.dart';
 import 'database/database_helper.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 void main() {
   runApp(
@@ -399,15 +400,133 @@ class _WorkoutsTabState extends State<WorkoutsTab> {
   }
 }
 
-class ProgressTab extends StatelessWidget {
+// Progress Tab
+
+class ProgressTab extends StatefulWidget {
   const ProgressTab({super.key});
+
   @override
-  Widget build(BuildContext context) => const Center(
-        child: Text('Progress\nCharts & Statistics', 
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center),
-      );
+  State<ProgressTab> createState() => _ProgressTabState();
 }
+
+class _ProgressTabState extends State<ProgressTab> {
+  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+  List<BarChartGroupData> _barGroups = [];
+  bool _isLoading = true;
+  int _totalThisWeek = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProgressData();
+  }
+
+  Future<void> _loadProgressData() async {
+    final history = await _dbHelper.getCheckInHistory();
+
+
+    final now = DateTime.now();
+    final last7Days = List.generate(7, (index) {
+      final date = now.subtract(Duration(days: index));
+      final dateStr = date.toIso8601String().split('T')[0];
+      final count = history.where((d) => d == dateStr).length;
+      return {'day': _getDayName(date.weekday), 'count': count};
+    }).reversed.toList();
+
+    setState(() {
+      _barGroups = last7Days.asMap().entries.map((entry) {
+        final index = entry.key;
+        final data = entry.value;
+        return BarChartGroupData(
+          x: index,
+          barRods: [
+            BarChartRodData(
+              toY: (data['count'] as num).toDouble(),
+              color: Colors.blue,
+              width: 20,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+            ),
+          ],
+        );
+      }).toList();
+
+      _totalThisWeek = last7Days.fold(0, (sum, item) => sum + (item['count'] as int));
+      _isLoading = false;
+    });
+  }
+
+  String _getDayName(int weekday) {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return days[weekday - 1];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Weekly Workout Progress',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Total this week: $_totalThisWeek workouts',
+            style: const TextStyle(fontSize: 18, color: Colors.blue),
+          ),
+          const SizedBox(height: 30),
+
+          Expanded(
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: 7,
+                barTouchData: BarTouchData(enabled: true),
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                        if (value.toInt() >= 0 && value.toInt() < days.length) {
+                          return Text(days[value.toInt()]);
+                        }
+                        return const Text('');
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(showTitles: true, reservedSize: 30),
+                  ),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: _barGroups,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+          const Center(
+            child: Text(
+              'Keep going! Your consistency is building 🔥',
+              style: TextStyle(fontSize: 16),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 
 class SettingsTab extends StatelessWidget {
   const SettingsTab({super.key});
