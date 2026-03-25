@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:socialanxiteam_project1/models/workout_plan.dart';
 import 'database/database_helper.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'dart:convert';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 void main() {
   runApp(
@@ -546,7 +549,7 @@ class SettingsTab extends StatelessWidget {
           ),
           const SizedBox(height: 40),
 
-          // Dark Mode Switch
+          // Dark Mode
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -554,25 +557,40 @@ class SettingsTab extends StatelessWidget {
               Switch(
                 value: themeProvider.themeMode == ThemeMode.dark,
                 onChanged: (value) => themeProvider.toggleTheme(),
-                activeColor: Colors.blue,
               ),
             ],
           ),
 
           const Divider(height: 50),
 
+          // Data Export
+          ListTile(
+            leading: const Icon(Icons.file_download_outlined, color: Colors.blue, size: 30),
+            title: const Text('Export Workout Data', style: TextStyle(fontSize: 18)),
+            subtitle: const Text('Save all plans as JSON file'),
+            trailing: const Icon(Icons.arrow_forward_ios),
+            onTap: () async {
+              final workouts = await DatabaseHelper.instance.getAllWorkouts();
+              final jsonString = jsonEncode(workouts.map((w) => w.toMap()).toList());
 
-          // Data Export Function
-          const ListTile(
-            leading: Icon(Icons.file_download_outlined),
-            title: Text('Export Workout Data'),
-            trailing: Icon(Icons.arrow_forward_ios),
+              final directory = await getApplicationDocumentsDirectory();
+              final file = File('${directory.path}/fitness_backup_${DateTime.now().toIso8601String().split('T')[0]}.json');
+
+              await file.writeAsString(jsonString);
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Data exported to: ${file.path}')),
+                );
+              }
+            },
           ),
 
-          // Biometric Login Switch
+          // Biometric Login（简化版，后面再做）
           const ListTile(
-            leading: Icon(Icons.fingerprint),
-            title: Text('Enable Biometric Login'),
+            leading: Icon(Icons.fingerprint, color: Colors.grey, size: 30),
+            title: Text('Enable Biometric Login', style: TextStyle(fontSize: 18)),
+            subtitle: Text('Coming soon'),
             trailing: Icon(Icons.arrow_forward_ios),
           ),
         ],
