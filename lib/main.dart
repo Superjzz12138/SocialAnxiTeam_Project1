@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'database/database_helper.dart';
 
 void main() {
   runApp(
@@ -110,15 +111,160 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 //Const Contents of Each Tabs
-class HomeTab extends StatelessWidget {
+class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
+
   @override
-  Widget build(BuildContext context) => const Center(
-        child: Text('Home\nDaily Streak & Check-in', 
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center),
-      );
+  State<HomeTab> createState() => _HomeTabState();
 }
+
+class _HomeTabState extends State<HomeTab> {
+  final DatabaseHelper _dbHelper = DatabaseHelper.instance;
+
+  int _streak = 0;
+  bool _hasCheckedInToday = false;
+  List<String> _history = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+
+    // 加载打卡数据（streak + 今天是否已打卡 + 历史记录）
+  Future<void> _loadData() async {
+    final streak = await _dbHelper.getCurrentStreak();
+    final history = await _dbHelper.getCheckInHistory();
+    final today = DateTime.now().toIso8601String().split('T')[0];
+
+    setState(() {
+      _streak = streak;
+      _history = history;
+      _hasCheckedInToday = history.contains(today);
+      _isLoading = false;
+    });
+  }
+
+
+  Future<void> _handleCheckIn() async {
+    final success = await _dbHelper.chekcInToday();
+
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✅ Check-in successful! Keep the streak going!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _loadData();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You have already checked in today!'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+
+@override
+Widget build(BuildContext context) {
+  if (_isLoading) {
+    return const Center(child: CircularProgressIndicator());
+  }
+
+  return Padding(
+    padding: const EdgeInsets.all(16.0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const SizedBox(height: 30),
+
+        // Current Checkin Streak
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.deepOrange.shade50,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.deepOrange, width: 3),
+          ),
+          child: Column(
+            children: [
+              const Text(
+                '🔥 Current Streak',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$_streak days',
+                style: const TextStyle(
+                  fontSize: 52,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepOrange,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 50),
+
+        // Check-in Button
+        ElevatedButton.icon(
+          onPressed: _hasCheckedInToday ? null : _handleCheckIn,
+          icon: const Icon(Icons.check_circle_outline, size: 32),
+          label: Text(
+            _hasCheckedInToday ? 'Already Checked In Today ✓' : 'Check-in Today',
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 18),
+            backgroundColor: _hasCheckedInToday ? Colors.grey : Colors.green,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 40),
+
+
+        const Text(
+          'Recent Check-ins',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+
+
+        Expanded(
+          child: _history.isEmpty
+              ? const Center(child: Text('No check-in records yet.\nStart your streak today!'))
+              : ListView.builder(
+                  itemCount: _history.length,
+                  itemBuilder: (context, index) {
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      child: ListTile(
+                        leading: const Icon(Icons.calendar_today, color: Colors.green),
+                        title: Text(_history[index]),
+                        trailing: const Icon(Icons.check_circle, color: Colors.green),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    ),
+  );
+}
+
+}
+
 
 class WorkoutsTab extends StatelessWidget {
   const WorkoutsTab({super.key});
