@@ -35,7 +35,27 @@ class WorkoutPlan {
   }
 
   factory WorkoutPlan.fromMap(Map<String, dynamic> map) {
-    return WorkoutPlan(id: map['id'],name: map['id'], exercises: map['exercises'], sets: map['sets'], reps: map['reps'], restTime: map['restTime'], notes: map['notes'], createdAt: map['createdAt']);
+    final createdAtRaw = map['createdAt'];
+
+    DateTime createdAt;
+    if (createdAtRaw is String) {
+      createdAt = DateTime.parse(createdAtRaw);
+    } else if (createdAtRaw is int) {
+      createdAt = DateTime.fromMillisecondsSinceEpoch(createdAtRaw);
+    } else {
+      createdAt = DateTime.now();
+    }
+     return WorkoutPlan(
+      id: map['id'] as int?,
+      name: map['name'] as String,
+      exercises: map['exercises'] as String,
+      sets: (map['sets'] as num).toInt(),
+      reps: (map['reps'] as num).toInt(),
+      restTime: (map['restTime'] as num).toInt(),
+      notes: map['notes'] as String?,
+      createdAt: map['createdAt'] is String
+        ? DateTime.parse(map['createdAt'] as String)
+        : DateTime.now());
   }
 
 
